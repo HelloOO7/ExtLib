@@ -1,0 +1,5 @@
+build/
+Tests/frames/
+Tests/framesCp/
+Tests/out/
+SampleData/
