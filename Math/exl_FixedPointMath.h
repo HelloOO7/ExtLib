@@ -30,8 +30,11 @@ typedef signed int fix32;
 #define FIXMUL_LOW(a, b) (__FIX_ROUND((a) * (b)) >> EXL_FIXED_POINT_SHIFT)
 
 #ifdef EXL_PLATFORM_GFL
-    #include "std/stdfx.h"
-    #include "std/stddiv.h"
+    extern "C" {
+        extern int     fx_div(int numerator, int denominator);
+        extern void    fx_div_req(int numerator, int denominator);
+        extern int     fx_div_get_result();
+    }
 
     #if EXL_FIXED_POINT_SHIFT == 12
         #define FIXDIV(a, b) fx_div(a, b)

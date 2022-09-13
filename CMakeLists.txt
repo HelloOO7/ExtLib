@@ -15,7 +15,6 @@ set(CMAKE_CXX_FLAGS "--specs=nosys.specs")
 set(CMAKE_EXE_LINKER_FLAGS "-r -march=armv5t -mthumb" CACHE INTERNAL "")
 
 add_compile_options(-r -march=armv5t -mthumb)
-include_directories(../swan)
 
 ELSEIF (EXL_PLATFORM STREQUAL "Win32")
 message("Building for Win32")

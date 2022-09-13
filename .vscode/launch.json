@@ -4,31 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-    {
-        "name": "(gdb) Spustit",
-        "type": "cppdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/build/Tests/exl_TestMPEGDecoder.exe",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${fileDirname}",
-        "environment": [],
-        "externalConsole": false,
-        "MIMode": "gdb",
-        "miDebuggerPath": "C:/MinGW/bin/gdb.exe",
-        "setupCommands": [
-            {
-                "description": "Povolit přehledný výpis pro gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-            },
-            {
-                "description":  "Nastavte variantu zpětného překladu na Intel.",
-                "text": "-gdb-set disassembly-flavor intel",
-                "ignoreFailures": true
-            }
-        ]
-    },
         {
             "name": "(Windows) Spustit",
             "type": "cppvsdbg",
@@ -40,6 +15,5 @@
             "environment": [],
             "console": "externalTerminal"
         }
-
     ]
 }

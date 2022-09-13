@@ -4,9 +4,22 @@
 #include "exl_FileStream.h"
 
 #ifdef EXL_PLATFORM_GFL
-#include "nds/fs.h"
-#include "nds/io.h"
-#undef bool
+enum SeekOrigin
+{
+    IO_SEEK_SET = 0x0,
+    IO_SEEK_CUR = 0x1,
+    IO_SEEK_END = 0x2,
+};
+
+extern "C" {
+    extern FSFile*     finit(FSFile* file);
+    extern int         romfs_fopen(FSFile* file, const char* path);
+    extern int         romfs_fclose(FSFile* file);
+    extern int         romfs_fseek(FSFile* file, u32 offset, SeekOrigin origin);
+    extern u32         romfs_ftell(FSFile* file);
+    extern u32         romfs_fread(FSFile* file, void* dest, u32 length);
+}
+
 typedef SeekOrigin __NDSSeekOrigin;
 #else
 #include <stdio.h>

@@ -4,8 +4,9 @@
 #include "exl_Stream.h"
 
 #ifdef EXL_PLATFORM_GFL
-#include "nds/fs.h"
-#undef bool
+struct FSFile {
+    char _dummy[0x48];
+};
 #else
 #include <stdio.h>
 #endif

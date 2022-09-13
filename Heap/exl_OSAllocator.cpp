@@ -4,10 +4,7 @@
 #include "exl_OSAllocator.h"
 #include "exl_DebugPrint.h"
 
-#ifdef EXL_PLATFORM_GFL
-#include "gfl/core/gfl_heap.h"
-#undef bool
-#else
+#ifndef EXL_PLATFORM_GFL
 #include <stdlib.h>
 #endif
 

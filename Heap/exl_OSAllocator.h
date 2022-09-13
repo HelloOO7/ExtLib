@@ -4,11 +4,15 @@
 #include "exl_Allocator.h"
 
 #ifdef EXL_PLATFORM_GFL
-#include "gfl/core/gfl_heap.h"
+extern "C" {
+    extern void* GFL_HeapAllocate(int heapId, u32 size, int calloc, const char* sourceFile, u16 lineNo);
+    extern void  GFL_HeapFree(void* p);
+    extern void  GFL_HeapResize(void* p, size_t newSize);
+}
 #undef bool
 
-#define OS_ALLOC(size) GFL_MALLOC(1, size)
-#define OS_FREE(p) GFL_FREE(p)
+#define OS_ALLOC(size) GFL_HeapAllocate(1, size, false, __FILE__, __LINE__)
+#define OS_FREE(p) GFL_HeapFree(p)
 
 #else
 #include <stdlib.h>
