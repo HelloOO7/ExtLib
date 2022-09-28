@@ -24,6 +24,7 @@ namespace exl {
         private:
             exl::io::Stream*    m_Stream;
             plm_t*              m_Plm;
+            plm_frame_t*        m_CurFrame;
 
         public:
             EXL_PUBLIC MPEGDecoder(exl::heap::Allocator* allocator, exl::io::Stream* stream);
@@ -45,7 +46,9 @@ namespace exl {
             }
             #endif
 
-            EXL_PUBLIC bool DecodeFrameRGB5A1(void* destRgb555, u32 outWidth, u32 outHeight);
+            EXL_PUBLIC bool NextFrame();
+
+            EXL_PUBLIC void DecodeFrameRGB5A1(void* destRgb555, u32 outWidth, u32 outHeight);
         };
     }
 }

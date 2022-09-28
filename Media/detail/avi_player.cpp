@@ -559,6 +559,7 @@ void AVI_Player::restart() {
 		freeSoundQueue();
 		_nowFrame = 0;
 		_demux._f->SeekSet(_demux._mediaBeginOfs);
+		_currentChunk.type = kChunkNullType;
 	}
 }
 

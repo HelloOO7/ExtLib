@@ -42,13 +42,19 @@ namespace exl {
             return plm_seek(m_Plm, time, exact ? 1 : 0);
         }
 
-        bool MPEGDecoder::DecodeFrameRGB5A1(void* dest, u32 outWidth, u32 outHeight) {
+        bool MPEGDecoder::NextFrame() {
             plm_frame_t* frame = plm_decode_video(m_Plm);
             if (!frame) {
                 return false;
             }
-            plm_frame_to_rgb555(frame, dest, outWidth, outHeight);
+            m_CurFrame = frame;
             return true;
+        }
+
+        void MPEGDecoder::DecodeFrameRGB5A1(void* dest, u32 outWidth, u32 outHeight) {
+            if (m_CurFrame) {
+                plm_frame_to_rgb555(m_CurFrame, dest, outWidth, outHeight);
+            }
         }
     }
 }
