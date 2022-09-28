@@ -89,8 +89,8 @@ ELSEIF (EXL_PLATFORM STREQUAL "ARMv5T")
     target_include_directories(ExtLib.Base PUBLIC .)
 
     function(subLib subLibName)
-        add_executable(lib${subLibName}.elf $<TARGET_OBJECTS:${subLibName}>)
-        target_link_libraries(lib${subLibName}.elf ${subLibName} ExtLib.ABI)
+        add_executable(${subLibName}.elf $<TARGET_OBJECTS:${subLibName}>)
+        target_link_libraries(${subLibName}.elf ${subLibName} ExtLib.ABI)
         target_include_directories(${subLibName} PUBLIC .)    
     endfunction()
 
