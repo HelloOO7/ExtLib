@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     printf("Now time %d frame %d\n", EXL_FROM_MPEG_DECIMAL(decoder->GetTime()), decoder->GetFrame());
 
     for (int frame = 0; frame < 60; frame++) {
-        decoder->DecodeFrameRGB555(decodeBuf, 256, 192);
+        decoder->DecodeFrameRGB5A1(decodeBuf, 256, 192);
         
         sprintf(path, "%s%03d.bin", basePath, frame);
 

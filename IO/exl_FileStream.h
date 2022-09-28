@@ -4,7 +4,7 @@
 #include "exl_Stream.h"
 
 #ifdef EXL_PLATFORM_GFL
-struct FSFile {
+struct __NDSFSFile {
     char _dummy[0x48];
 };
 #else
@@ -22,8 +22,8 @@ namespace exl {
 
         private:
             #ifdef EXL_PLATFORM_GFL
-            FSFile __file;
-            FSFile* file;
+            __NDSFSFile __file;
+            __NDSFSFile* file;
             #else
             FILE* file;
             #endif

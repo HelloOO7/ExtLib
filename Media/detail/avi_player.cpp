@@ -76,7 +76,10 @@ bool AVI_Demuxer::readHeader_strf_auds() {
 	int channels = READ_LE_UINT16(hdr + 2);
 	int sampleRate  = READ_LE_UINT32(hdr + 4);
 	int bitsPerSample = READ_LE_UINT16(hdr + 14);
-	return formatTag == 1 && channels == 1 && sampleRate == 44100 && bitsPerSample == 8;
+	_audioNChannels = channels;
+	_audioRate = sampleRate;
+	_audioBps = bitsPerSample;
+	return formatTag == 1 && (channels == 1 || channels == 2) && (bitsPerSample == 8 || bitsPerSample == 16);
 }
 
 bool AVI_Demuxer::readHeader_strf_vids() {
@@ -128,7 +131,11 @@ bool AVI_Demuxer::readHeader() {
 			} else if (memcmp(tag, "strh", 4) == 0 && len == kSizeOfChunk_strh) {
 				readHdrLoop = readHeader_strh();
 			} else if (memcmp(tag, "strf", 4) == 0 && len == kSizeOfChunk_waveformat) {
-				readHdrLoop = readHeader_strf_auds();
+				if (!readHeader_strf_auds()) {
+					//disable audio
+					_audioNChannels = 0;
+				}
+				readHdrLoop = true;
 			} else if (memcmp(tag, "strf", 4) == 0 && len == kSizeOfChunk_bitmapinfo) {
 				readHdrLoop = readHeader_strf_vids();
 			} else {
@@ -159,7 +166,7 @@ bool AVI_Demuxer::readNextChunk(AVI_Chunk &chunk) {
 	} else if (tag[2] == 'd' && tag[3] == 'c') {
 		chunk.type = kChunkVideoType;
 	} else {
-		EXL_DEBUG_PRINTF("Unknown chunk tag %.4s at stream pos %x\n", tag, _f->Tell() - 8);
+		EXL_DEBUG_PRINTF("Unknown chunk tag %.4s at stream pos 0x%x\n", tag, _f->Tell() - 8);
 		_f->SeekCur(len);
 		return false;
 	}
@@ -414,6 +421,9 @@ AVI_Player::AVI_Player(exl::heap::Allocator* allocator)
     _allocator = allocator;
 	_vidCb = nullptr;
 	_audCb = nullptr;
+	_currentChunk.data = nullptr;
+	_currentChunk.dataSize = 0;
+	_currentChunk.type = kChunkNullType;
 }
 
 AVI_Player::~AVI_Player() {
@@ -448,17 +458,39 @@ void AVI_Demuxer::prepareChunkDecode(AVI_Chunk& chunk) {
 	#endif
 }
 
+bool AVI_Player::skipFrame() {
+	AVI_Chunk chunk;
+	while (_demux.readNextChunk(chunk)) {
+		skipChunk(chunk);
+		if (chunk.type == kChunkVideoType) {
+			_nowFrame++;
+			return true;
+		}
+	}
+	return false;
+}
+
 bool AVI_Player::readNextFrame() {
+	AVI_Chunk& chunk = _currentChunk;
 	bool decodeVideo = ((_decodeFlags & AVI_DECODE_VIDEO) != 0) && (_vidCb != nullptr);
-	bool decodeAudio = ((_decodeFlags & AVI_DECODE_AUDIO) != 0) && (_audCb != nullptr);
+	bool decodeAudio = ((_decodeFlags & AVI_DECODE_AUDIO) != 0) && (_audCb != nullptr) && (_demux._audioNChannels != 0);
 	if (decodeVideo) {
 		if (!_cinepak._yuvFrame) {
 			_cinepak.allocYUV(_demux._width, _demux._height);
 			EXL_DEBUG_PRINTF("YUV buffer allocated\n");
 		}
 	}
-	AVI_Chunk chunk;
-	while (_demux.readNextChunk(chunk)) {
+	bool initial = false;
+	if (chunk.type == kChunkTermType) {
+		return false;
+	}
+	else if (chunk.type == kChunkNullType) {
+		//first chunk header
+		initial = true;
+		_demux.readNextChunk(chunk);
+	}
+	int vidChunkCount = 0;
+	while (true) {
 		switch (chunk.type) {
 			case kChunkAudioType:
 				if (decodeAudio) {
@@ -470,6 +502,11 @@ bool AVI_Player::readNextFrame() {
 				}
 				break;
 			case kChunkVideoType:
+				if (vidChunkCount) {
+					//has next chunk
+					return true;
+				}
+				vidChunkCount++;
 				if (decodeVideo) {
 					_demux.prepareChunkDecode(chunk);
 					decodeVideoChunk(chunk);
@@ -477,14 +514,17 @@ bool AVI_Player::readNextFrame() {
 				else {
 					skipChunk(chunk);
 				}
-				break;
+				if (!initial) {
+					_nowFrame++;
+				}
 		}
-		if (chunk.type == kChunkVideoType) {
-			_nowFrame++;
-			return true;
+		if (!_demux.readNextChunk(chunk)) {
+			break;
 		}
 	}
-	return false;
+	//next read will return false
+	chunk.type = kChunkTermType;
+	return true;
 }
 
 void AVI_Player::freeSoundQueue() {
@@ -549,9 +589,6 @@ void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 			p->next = sbq;
 		}
 		_soundTailQueue = sbq;
-		if (_soundQueuePreloadSize < kSoundPreloadSize) {
-			++_soundQueuePreloadSize;
-		}
 		if (_audCb) {
 			_audCb(_supervisor, _soundQueue);
 		}
@@ -571,15 +608,70 @@ void AVI_Player::skipChunk(AVI_Chunk &c) {
 	_demux._f->SeekCur(c.dataSize);
 }
 
-void AVI_Player::mix(int16_t *buf, int samples) {
-	if (_soundQueuePreloadSize < kSoundPreloadSize) {
-		return;
+uint32_t AVI_Player::getAvailableSamples() {
+	uint32_t bytes = 0;
+	AVI_SoundBufferQueue* sbq = _soundQueue;
+	while (sbq) {
+		bytes += sbq->size - sbq->offset;
+		sbq = sbq->next;
 	}
+	return bytes / ((_demux._audioBps >> 3) * _demux._audioNChannels);
+}
+
+void AVI_Player::getSamples(void *buf, int samples, int channel) {
+	int step = (_demux._audioBps * _demux._audioNChannels) >> 3;
+	AVI_SoundBufferQueue* sbq = _soundQueue;
+	int offset = sbq->offset + (channel * _demux._audioBps) >> 3;
+
+	if (_demux._audioBps == 16) {
+		int16_t* buf16 = (int16_t*) buf;
+		while (sbq && samples > 0) {
+			*buf16++ = *(int16_t*)(sbq->buffer + offset);
+			offset += step;
+			if (offset >= sbq->size) {
+				offset = 0;
+				sbq = sbq->next;
+			}
+			--samples;
+		}
+	}
+	else if (_demux._audioBps == 8) {
+		int8_t* buf8 = (int8_t*) buf;
+		while (sbq && samples > 0) {
+			*buf8++ = *(int8_t*)(sbq->buffer + offset);
+			offset += step;
+			if (offset >= sbq->size) {
+				offset = 0;
+				sbq = sbq->next;
+			}
+			--samples;
+		}
+	}
+}
+
+void AVI_Player::discardSamples(int samples) {
+	int bytes = (_demux._audioBps * samples * _demux._audioNChannels) >> 3;
+	while (_soundQueue && bytes > 0) {
+		int sub = _soundQueue->size - _soundQueue->offset;
+		if (bytes < sub) {
+			sub = bytes;
+		}
+		_soundQueue->offset += sub;
+		bytes -= sub;
+		if (_soundQueue->offset >= _soundQueue->size) {
+			AVI_SoundBufferQueue* next = _soundQueue->next;
+			_allocator->Free(_soundQueue->buffer);
+			_allocator->Free(_soundQueue);
+			_soundQueue = next;
+		}
+	}
+}
+
+void AVI_Player::mix(int16_t *buf, int samples) {
 	while (_soundQueue && samples > 0) {
 		int sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
 		*buf++ = (int16_t)sample;
-		*buf++ = (int16_t)sample;
-		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
+		_soundQueue->offset++;
 		if (_soundQueue->offset >= _soundQueue->size) {
 			AVI_SoundBufferQueue *next = _soundQueue->next;
 			exl::heap::Allocator::FreeStatic(_soundQueue->buffer);

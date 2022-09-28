@@ -19,6 +19,9 @@ file(GLOB SOURCES_CINEPAK
 add_library(ExtLib.Media.MPEG OBJECT ${SOURCES_MPEG})
 target_include_directories(ExtLib.Media.MPEG PRIVATE ..)
 add_library(ExtLib.Media.Cinepak OBJECT ${SOURCES_CINEPAK})
+if (EXL_PLATFORM STREQUAL "ARMv5T")
+    target_sources(ExtLib.Media.Cinepak PRIVATE detail/yuv2rgb555.s)
+endif()
 target_include_directories(ExtLib.Media.Cinepak PRIVATE ..)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

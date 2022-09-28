@@ -18,8 +18,10 @@
 #endif
 
 enum AVI_ChunkType {
+	kChunkNullType,
 	kChunkAudioType,
-	kChunkVideoType
+	kChunkVideoType,
+	kChunkTermType
 };
 
 struct AVI_Chunk {
@@ -56,6 +58,10 @@ struct AVI_Demuxer {
 	int _width, _height;
 	int _streams;
 	int _frameRate;
+
+	int _audioNChannels;
+	int _audioRate;
+	int _audioBps;
 
 	exl::io::Stream *_f;
 	int _mediaBeginOfs;
@@ -173,12 +179,6 @@ struct AVI_SoundBufferQueue {
 };
 
 struct AVI_Player {
-	enum {
-		kDefaultFrameWidth = 320,
-		kDefaultFrameHeight = 200,
-		kSoundPreloadSize = 4,
-	};
-
 	#define AVI_DECODE_VIDEO (1 << 0)
 	#define AVI_DECODE_AUDIO (1 << 1)
 
@@ -199,6 +199,7 @@ public:
 	INLINE void setAudioCallback(AudioCallback callback) {
 		_audCb = callback;
 	}
+	bool skipFrame();
 	bool readNextFrame();
 	void close();
 
@@ -213,6 +214,16 @@ public:
 		*pW = _demux._width;
 		*pH = _demux._height;
 	}
+
+	INLINE void getAudioInfo(int* pNChannels, int* pSampleRate, int* pBps) {
+		*pNChannels = _demux._audioNChannels;
+		*pSampleRate = _demux._audioRate;
+		*pBps = _demux._audioBps;
+	}
+
+	uint32_t getAvailableSamples();
+	void getSamples(void *buf, int samples, int channel);
+	void discardSamples(int samples);
 private:
 	void freeSoundQueue();
 	void decodeAudioChunk(AVI_Chunk &c);
@@ -230,6 +241,7 @@ private:
 	AVI_SoundBufferQueue *_soundQueue, *_soundTailQueue;
 	int _soundQueuePreloadSize;
 	Cinepak_Decoder _cinepak;
+	AVI_Chunk _currentChunk;
 };
 
 #endif // AVI_PLAYER_H__

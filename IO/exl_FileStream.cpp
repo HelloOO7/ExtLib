@@ -12,12 +12,12 @@ enum SeekOrigin
 };
 
 extern "C" {
-    extern FSFile*     finit(FSFile* file);
-    extern int         romfs_fopen(FSFile* file, const char* path);
-    extern int         romfs_fclose(FSFile* file);
-    extern int         romfs_fseek(FSFile* file, u32 offset, SeekOrigin origin);
-    extern u32         romfs_ftell(FSFile* file);
-    extern u32         romfs_fread(FSFile* file, void* dest, u32 length);
+    extern __NDSFSFile*finit(__NDSFSFile* file);
+    extern int         romfs_fopen(__NDSFSFile* file, const char* path);
+    extern int         romfs_fclose(__NDSFSFile* file);
+    extern int         romfs_fseek(__NDSFSFile* file, u32 offset, SeekOrigin origin);
+    extern u32         romfs_ftell(__NDSFSFile* file);
+    extern u32         romfs_fread(__NDSFSFile* file, void* dest, u32 length);
 }
 
 typedef SeekOrigin __NDSSeekOrigin;

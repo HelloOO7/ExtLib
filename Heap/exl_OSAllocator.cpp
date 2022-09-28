@@ -10,6 +10,20 @@
 
 namespace exl {
     namespace heap {
+        #ifdef EXL_PLATFORM_GFL
+        OSAllocator::OSAllocator() : OSAllocator(1) {
+            
+        }
+
+        OSAllocator::OSAllocator(u16 heapId) {
+            m_HeapID = heapId;
+        }
+        #else
+        OSAllocator::OSAllocator() {
+            
+        }
+        #endif
+
         Allocator* OSAllocator::GetInstance()  {
             static Allocator* g_Instance;
             
@@ -23,7 +37,13 @@ namespace exl {
             if (size == 0) {
                 return nullptr;
             }
-            OSHeapHeader* mainBuf = static_cast<OSHeapHeader*>(OS_ALLOC(sizeof(OSHeapHeader) + size));
+            size_t actualSize = sizeof(OSHeapHeader) + size;
+            #ifdef EXL_PLATFORM_GFL
+            void* alloc = GFL_HeapAllocate(m_HeapID, actualSize, false, __FILE__, __LINE__);
+            #else
+            void* alloc = OS_ALLOC(actualSize);
+            #endif
+            OSHeapHeader* mainBuf = static_cast<OSHeapHeader*>(alloc);
             if (!mainBuf) {
                 EXL_DEBUG_PRINTF("OSAllocator allocation for size %d failed!", size);
                 return 0;

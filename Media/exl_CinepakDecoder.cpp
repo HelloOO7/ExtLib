@@ -6,17 +6,26 @@
 #include "detail/avi_player.h"
 #include "Util/exl_Print.h"
 #include "exl_DebugPrint.h"
+#include "exl_AudioFormat.h"
 
 namespace exl {
     namespace media {
-        CinepakDecoder::CinepakDecoder(exl::heap::Allocator* allocator, exl::io::Stream* stream) : m_Player(allocator) {
+        CinepakDecoder::CinepakDecoder(exl::heap::Allocator* allocator, exl::io::Stream* stream, int streams) : m_Player(allocator) {
             m_Stream = stream;
             m_Player.setSupervisor(this);
-            if (!m_Player.openStream(m_Stream, AVI_DECODE_VIDEO)) {
+            int aviStreams = 0;
+            if (streams & EXL_CINEPAK_VIDEO) {
+                aviStreams |= AVI_DECODE_VIDEO;
+            }
+            if (streams & EXL_CINEPAK_AUDIO) {
+                aviStreams |= AVI_DECODE_AUDIO;
+            }
+            if (!m_Player.openStream(m_Stream, aviStreams)) {
                 EXL_DEBUG_PRINTF("Failed to open AVI file!\n");
             }
             else {
                 m_Player.setVideoCallback(VideoDecodeCallback);
+                m_Player.setAudioCallback(AudioDecodeCallback);
             }
             m_LastYUV = nullptr;
         }
@@ -34,6 +43,22 @@ namespace exl {
             *pHeight = (u32) ih;
         }
 
+        void CinepakDecoder::GetAudioFormat(exl::media::AudioFormat& dest) {
+            int bps;
+            int nch;
+            int rate;
+            m_Player.getAudioInfo(&nch, &rate, &bps);
+            if (nch == 0) {
+                dest.Encoding == INVALID;
+            }
+            else {
+                dest.Encoding = AudioEncoding::PCM;
+                dest.BitsPerSample = bps;
+                dest.ChannelCount = nch;
+                dest.SampleRate = rate;
+            }
+        }
+
         u32 CinepakDecoder::GetFrame() {
             return m_Player.getFrame();
         }
@@ -42,15 +67,27 @@ namespace exl {
             m_Player.restart();
         }
 
-        bool CinepakDecoder::DecodeFrameRGB5A1(void* dest, u32 outWidth, u32 outHeight) {
-            if (!m_Player.readNextFrame()) {
-                return false;
-            }
+        bool CinepakDecoder::NextFrame() {
+            return m_Player.readNextFrame();
+        }
+
+        void CinepakDecoder::DecodeFrameRGB5A1(void* dest, u32 outWidth, u32 outHeight) {
             u32 srcW;
             u32 srcH;
             GetVideoDimensions(&srcW, &srcH);
             ConvY2R(m_LastYUV, dest, srcW, srcH, outWidth, outHeight);
-            return true;
+        }
+
+        u32 CinepakDecoder::GetAvailableSamples() {
+            return m_Player.getAvailableSamples();
+        }
+
+        void CinepakDecoder::GetSamples(void* dest, u32 count, u8 channel) {
+            m_Player.getSamples(dest, count, channel);
+        }
+
+        void CinepakDecoder::DiscardSamples(u32 count) {
+            m_Player.discardSamples(count);
         }
 
         struct UYVY {
@@ -60,6 +97,13 @@ namespace exl {
             u8 Y2; 
         };
 
+        #ifdef EXL_PLATFORM_GFL
+        extern "C" void uyvy422_2_rgb555_interwork(void* rgb, void* uyvy, u32 srcW, u32 srcH, u32 dstW, u32 dstH);
+
+        void CinepakDecoder::ConvY2R(void* yuv, void* rgb, u32 srcW, u32 srcH, u32 dstW, u32 dstH) {
+            uyvy422_2_rgb555_interwork(rgb, yuv, srcW, srcH, dstW, dstH);
+        }
+        #else
         INLINE int clip(int value) {
             return value < 0 ? 0 : (value > 255 ? 255 : value);
         }
@@ -120,9 +164,14 @@ namespace exl {
             }
             //EXL_DEBUG_PRINTF("Y2R bytes written 0x%x\n", (u8*)out - (u8*)rgb);
         }
+        #endif
 
         void CinepakDecoder::VideoDecodeCallback(void* supervisor, uint8_t* yuv) {
             static_cast<CinepakDecoder*>(supervisor)->m_LastYUV = yuv;
+        }
+
+        void CinepakDecoder::AudioDecodeCallback(void* supervisor, AVI_SoundBufferQueue* sbq) {
+            //dummy
         }
     }
 }

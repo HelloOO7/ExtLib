@@ -7,16 +7,16 @@
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-    int heapSize = 0x34000;
+    int heapSize = 0x80000;
     exl::heap::Allocator* osAlloc = exl::heap::OSAllocator::GetInstance();
     void* alal = osAlloc->Alloc(sizeof(exl::heap::HeapArea));
     void* heap = osAlloc->Alloc(heapSize);
     printf("Allocation done.\n");
     exl::heap::Allocator* allocator = new (alal) exl::heap::HeapArea(heap, heapSize);
-    exl::io::FileStream* fileStream = new (allocator) exl::io::FileStream("D:/Filmy/out.avi");
+    exl::io::FileStream* fileStream = new (allocator) exl::io::FileStream("D:/_REWorkspace/pokescript_genv/codeinjection_new/CinePlayer/vid/GameFreak.avi");
     //exl::io::BufferedStream* bufStream = new (allocator) exl::io::BufferedStream(fileStream, allocator, 0x8000);
 
-    exl::media::CinepakDecoder* decoder = new(allocator) exl::media::CinepakDecoder(allocator, fileStream);
+    exl::media::CinepakDecoder* decoder = new(allocator) exl::media::CinepakDecoder(allocator, fileStream, EXL_CINEPAK_VIDEO);
 
     u32 w;
     u32 h;
@@ -29,10 +29,11 @@ int main(int argc, char** argv) {
     char* path = (char*)osAlloc->Alloc(strlen(basePath) + 7 + 1);
 
     for (int frame = 0; frame < 60; frame++) {
-        if (!decoder->DecodeFrameRGB555(decodeBuf, 256, 192)) {
+        if (!decoder->NextFrame()) {
             printf("Decode error! frame %d\n", frame);
             return 1;
         }
+        decoder->DecodeFrameRGB5A1(decodeBuf, 256, 192);
         
         sprintf(path, "%s%03d.bin", basePath, frame);
 
