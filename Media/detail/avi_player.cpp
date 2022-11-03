@@ -620,6 +620,9 @@ uint32_t AVI_Player::getAvailableSamples() {
 }
 
 void AVI_Player::getSamples(void *buf, int samples, int channel) {
+	if (!_soundQueue) {
+		return;
+	}
 	int step = (_demux._audioBps * _demux._audioNChannels) >> 3;
 	AVI_SoundBufferQueue* sbq = _soundQueue;
 	int offset = sbq->offset + (channel * _demux._audioBps) >> 3;
