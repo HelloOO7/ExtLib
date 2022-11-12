@@ -38,7 +38,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 add_compile_definitions(DEBUG)
 endif()
 
-#add_compile_definitions(DEBUG EXL_DESMUME)
+if (EXL_DESMUME)
+add_compile_definitions(EXL_DESMUME)
+endif()
 
 add_subdirectory(Heap)
 add_subdirectory(Compression)
