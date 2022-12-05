@@ -31,7 +31,9 @@ namespace exl {
             #ifdef EXL_PLATFORM_GFL
             file = &__file;
             finit(file);
-            romfs_fopen(file, path);
+            if (!romfs_fopen(file, path)) {
+                file = nullptr;
+            }
             #else
             file = fopen(path, mode == READ ? "rb" : "w+b");
             #endif
@@ -39,6 +41,9 @@ namespace exl {
 
         u32 FileStream::Read(void* dest, u32 elementSize, u32 elementCount) {
             #ifdef EXL_PLATFORM_GFL
+            if (!file) {
+                return 0;
+            }
             return romfs_fread(file, dest, elementSize * elementCount);
             #else
             return fread(dest, elementSize, elementCount, file);
@@ -62,6 +67,10 @@ namespace exl {
                 IO_SEEK_END
             };
 
+            if (!file) {
+                return false;
+            }
+
             return romfs_fseek(file, pos, SEEKORIGIN_LUT_NDS[(u32)origin]);
             #else
             static const u32 SEEKORIGIN_LUT_STDIO[] = {
@@ -76,6 +85,10 @@ namespace exl {
 
         u32 FileStream::Tell() {
             #ifdef EXL_PLATFORM_GFL
+            if (!file) {
+                return 0;
+            }
+
             return romfs_ftell(file);
             #else
             return ftell(file);
