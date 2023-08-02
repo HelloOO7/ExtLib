@@ -24,28 +24,45 @@ namespace exl {
 namespace exl {
 	namespace heap {
 		/**
-		 * @brief Simple and versatile heap memory manager for dynamic allocation in.
+		 * @brief Simple and versatile heap memory manager for dynamic allocation.
 		 */
 		class HeapArea : public Allocator {
 		private:
-			struct HeapHeader {
-				size_t Size;
-				size_t PrevOffset;
-				size_t NextOffset;
+			struct BlockHeader {
+				size_t 			Size;
+				BlockHeader* 	Next;
+				int 			AlignPadding;
 				EXL_ALLOCATOR_BLOCK_END_REQUIRE;
+
+				INLINE void SetNext(BlockHeader* next) {
+					if (next == this) {
+						while (true) { //BAD!!
+							;
+						}
+					}
+					Next = next;
+				}
+
+				INLINE void* EndAddress() {
+					return reinterpret_cast<char*>(this + 1) + Size;
+				}
 			};
 
-			#define ALIGN16(value) (((value) & 0xf) ? (((value) & 0xFFFFFFF0) + 0x10) : (value))
-			#define HEAP_HEADER_SIZE static_cast<size_t>(ALIGN16(sizeof(HeapHeader)))
+			static_assert(sizeof(BlockHeader) % 8 == 0);
 
-			void* m_HeapBase;
-			void* m_HeapMax;
+			void*  m_HeapBase;
+			size_t m_TotalSize;
+
+			BlockHeader* m_FreeBlocks;
+
 			bool  m_DeleteHeapOnDestroy;
 			//Keep debug fields for size consistency in dynamically linked modules
 			//#ifdef DEBUG
 			const char* m_MgrName;
 			u32   m_AllocCount;
 			//#endif
+
+			void InsertFreeBlock(BlockHeader* block);
 
 		public:
 			/**
@@ -64,6 +81,11 @@ namespace exl {
 			 * @param heapSize Size of the heap space.
 			 */
 			EXL_PUBLIC HeapArea(const char* areaName, void* heap, size_t heapSize);
+
+			EXL_PUBLIC static HeapArea* CreateIn(const char* areaName, void* heap, size_t size);
+			EXL_PUBLIC static INLINE HeapArea* CreateIn(void* heap, size_t size) {
+				return CreateIn(nullptr, heap, size);
+			}
 
 			EXL_PUBLIC static HeapArea* CreateFrom(exl::heap::Allocator* allocator, const char* areaName, size_t size);
 
@@ -86,7 +108,7 @@ namespace exl {
 			 * @return Heap size in bytes.
 			 */
 			INLINE size_t GetHeapSize() {
-				return (size_t)(static_cast<u8*>(m_HeapMax) - static_cast<u8*>(m_HeapBase));
+				return m_TotalSize;
 			}
 
 			/**

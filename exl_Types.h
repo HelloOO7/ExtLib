@@ -42,6 +42,15 @@
 #endif
 #endif
 
+#if defined(_MSC_VER)
+#define _PRAGMA_HELPER(str) _Pragma(#str)
+#define ALIGNED_TYPE(definition, alignment) _PRAGMA_HELPER(pack(push, alignment)) \
+definition;\
+_Pragma("pack(pop)")
+#elif defined(__GNUC__)
+#define ALIGNED_TYPE(definition, alignment) definition __attribute__ ((aligned(alignment)));
+#endif
+
 typedef uint64_t u64;
 
 typedef int64_t s64;

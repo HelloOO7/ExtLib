@@ -110,6 +110,7 @@ ENDIF ()
 
 add_library(ExtLib.Include OBJECT exl_DllExport.h)
 target_include_directories(ExtLib.Include PUBLIC .)
+set_target_properties(ExtLib.Include PROPERTIES LINKER_LANGUAGE CXX)
 
 IF (EXL_PLATFORM STREQUAL "ARMv5T")
     target_compile_definitions(ExtLib.Include PUBLIC EXL_PLATFORM_GFL)

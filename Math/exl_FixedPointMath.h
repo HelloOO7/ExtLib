@@ -14,7 +14,7 @@ typedef signed int fix32;
 #define FIX_ONE (1 << EXL_FIXED_POINT_SHIFT)
 #define FIX_HALF (FIX_ONE >> 1)
 
-#define __FIX_ROUND(a) ((a) + (FIX_HALF >> 1))
+#define __FIX_ROUND(a) ((a) + FIX_HALF)
 
 #define I2FIX(i) ((fix32)((i) << EXL_FIXED_POINT_SHIFT))
 #define F2FIX(i) ((fix32)((i) * (1 << EXL_FIXED_POINT_SHIFT)))
