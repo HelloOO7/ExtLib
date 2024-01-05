@@ -32,7 +32,7 @@ namespace exl {
 			header->Next = nullptr;
 			m_FreeBlocks = header;
 			EXL_DEBUG_PRINTF("HeapArea::ctor %s | Done initializing. Heap size: %d.\n", m_MgrName, size);
-			EXL_DEBUG_PRINTF("HeapArea::ctor %s | Initialized heap area at 0x%p, end at 0x%p\n", m_MgrName, heap, static_cast<char*>(heap) + size);
+			EXL_DEBUG_PRINTF("HeapArea::ctor %s | Initialized heap area at %p, end at %p\n", m_MgrName, heap, static_cast<char*>(heap) + size);
 		}
 
 		HeapArea::~HeapArea() {

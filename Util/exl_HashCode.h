@@ -39,14 +39,14 @@ namespace exl {
         }
 
         namespace detail {
-            INLINE constexpr Hash fnv1a_32(char const *s, std::size_t count) {
+            INLINE constexpr Hash fnv1a_32(char const *s, size_t count) {
                 return count ? (fnv1a_32(s, count - 1) ^ s[count - 1]) * 16777619u : 0x811C9DC5;
             }
         }
     }
 }
 
-constexpr exl::util::Hash operator"" _hash(char const* s, std::size_t count)
+constexpr exl::util::Hash operator"" _hash(char const* s, size_t count)
 {
     return exl::util::detail::fnv1a_32(s, count);
 }
