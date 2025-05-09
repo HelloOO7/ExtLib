@@ -139,7 +139,7 @@ namespace exl {
 				BlockHeader* header = static_cast<BlockHeader*>(p) - 1;
 				if (newSize <= header->Size) {
 					if (header->Size - alignSize >= sizeof(BlockHeader) + AlignAllocSize(1)) {
-						size_t newFreeSize = header->Size - alignSize - sizeof(BlockHeader) - AlignAllocSize(1);
+						size_t newFreeSize = header->Size - alignSize - sizeof(BlockHeader);
 						header->Size = alignSize;
 						BlockHeader* free2 = reinterpret_cast<BlockHeader*>(header->EndAddress());
 						free2->Size = newFreeSize;
