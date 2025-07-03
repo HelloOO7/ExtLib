@@ -10,9 +10,21 @@
 #ifndef __EXL_TYPES_H
 #define __EXL_TYPES_H
 
+#ifdef __cplusplus
+
+#include <cstdbool>
+#include <cstddef>
+#include <cstdio>
+#include <cstdint>
+
+#else
+
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
+
+#endif
 
 /**
  * @brief Counts the number of elements in an array.

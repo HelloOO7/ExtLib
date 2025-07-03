@@ -1,5 +1,5 @@
 {
     "cmake.configureArgs": [
-        "-DEXL_PLATFORM=Win32"
+        "-DEXL_PLATFORM=ARMv5T"
     ]
 }
